@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "nombre": "Conjunto Deportivo Sport",
+    "precio": 22000,
+    "categoria": "deportivo",
+    "stock": 10,
+    "descripcion": "Conjunto de microfibra ideal para alto rendimiento. Respirable y cómodo.",
+    "imagen": "https://via.placeholder.com/300"
+  },
+  {
+    "id": 2,
+    "nombre": "Lencería Encaje Liz",
+    "precio": 15000,
+    "categoria": "lenceria",
+    "stock": 5,
+    "descripcion": "Diseño exclusivo en encaje francés. Elegancia y confort.",
+    "imagen": "https://via.placeholder.com/300"
+  },
+  {
+    "id": 3,
+    "nombre": "Calza Running Pro",
+    "precio": 18000,
+    "categoria": "deportivo",
+    "stock": 8,
+    "descripcion": "Calza con compresión muscular y bolsillo para celular.",
+    "imagen": "https://via.placeholder.com/300"
+  }
+]
