@@ -1,24 +1,43 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
+import { db } from "../firebase/config";
+import { doc, getDoc } from "firebase/firestore";
 import { useCart } from "../context/CartContext";
 import "../components/Item.css";
-import productosJSON from "../data/productos.json";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { addToCart, cart } = useCart();
+
+  const [product, setProduct] = useState(null);
   const [alertMessage, setAlertMessage] = useState("");
+
   const alertTimeoutRef = useRef(null);
 
-  const product = productosJSON.find((item) => String(item.id) === String(id));
-
   useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const docRef = doc(db, "productos", id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setProduct({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          setProduct(null);
+        }
+      } catch (error) {
+        console.error("Error al obtener producto:", error);
+      }
+    };
+
+    fetchProduct();
+
     return () => {
       if (alertTimeoutRef.current) {
         clearTimeout(alertTimeoutRef.current);
       }
     };
-  }, []);
+  }, [id]);
 
   if (!product) {
     return (
@@ -37,55 +56,59 @@ const ProductDetail = () => {
     const availableStock = product.stock - currentQuantity;
 
     if (availableStock <= 0) {
-      setAlertMessage("No hay stock disponible para este producto.");
-      if (alertTimeoutRef.current) {
-        clearTimeout(alertTimeoutRef.current);
-      }
-      alertTimeoutRef.current = setTimeout(() => {
-        setAlertMessage("");
-        alertTimeoutRef.current = null;
-      }, 2000);
+      setAlertMessage("No hay stock disponible.");
+
+      clearTimeout(alertTimeoutRef.current);
+      alertTimeoutRef.current = setTimeout(() => setAlertMessage(""), 2000);
+
       return;
     }
 
     const added = addToCart(product, 1);
-    if (added) {
-      setAlertMessage(`Se agregó "${product.nombre}" al carrito.`);
-    } else {
-      setAlertMessage("No se pudo agregar el producto (stock insuficiente).");
-    }
 
-    if (alertTimeoutRef.current) {
-      clearTimeout(alertTimeoutRef.current);
-    }
+    setAlertMessage(
+      added
+        ? `Se agregó "${product.nombre}" al carrito.`
+        : "No se pudo agregar el producto."
+    );
 
-    alertTimeoutRef.current = setTimeout(() => {
-      setAlertMessage("");
-      alertTimeoutRef.current = null;
-    }, 2000);
+    clearTimeout(alertTimeoutRef.current);
+    alertTimeoutRef.current = setTimeout(() => setAlertMessage(""), 2000);
   };
 
   return (
     <section className="detail-page">
       <div className="detail-image">
-        <img src={product.imagen} alt={product.nombre} />
+        <img src={product.imagen || "https://via.placeholder.com/700x500"} alt={product.nombre || "Producto"} />
       </div>
+
       <div className="detail-info">
-        <span className="detail-category">{product.categoria}</span>
-        <h1>{product.nombre}</h1>
-        <p>{product.descripcion}</p>
-        <p className="detail-price">${product.precio.toLocaleString()}</p>
-        <p className="detail-stock">Stock disponible: {product.stock}</p>
+        <span className="detail-category">{product.categoria || "Sin categoría"}</span>
+        <h1>{product.nombre || "Producto"}</h1>
+        <p>{product.descripcion || "Descripción no disponible."}</p>
+        <p className="detail-price">
+          ${Number(product.precio || 0).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+        </p>
+        <p className="detail-stock">
+          Stock disponible: {product.stock ?? 0}
+        </p>
+
         <div className="detail-actions">
-          <button className="button-primary" onClick={handleAddToCart}>
-            Agregar al carrito
+          <button
+            className="button-primary"
+            onClick={handleAddToCart}
+            disabled={Number(product.stock) <= 0}
+          >
+            {Number(product.stock) > 0 ? "Agregar al carrito" : "Sin stock"}
           </button>
+
           <Link to="/productos" className="button-outline">
             Volver al catálogo
           </Link>
         </div>
+
         {alertMessage && (
-          <div className={`product-alert ${alertMessage.includes("No hay stock") || alertMessage.includes("No se pudo") ? "error-alert" : "success-alert"}`}>
+          <div className="product-alert">
             {alertMessage}
           </div>
         )}
