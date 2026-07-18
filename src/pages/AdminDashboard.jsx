@@ -199,66 +199,47 @@ export const AdminDashboard = () => {
     setShowForm(false);
   };
 
-  // ENVÍO DEL FORMULARIO CON INTERCEPCIÓN DE ERRORES
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("[handleSubmit] disparado", { nombre, precio, stock, categoria, imagen: imagen?.slice(0, 30) });
     clearAlert();
 
-    if (!nombre.trim()) {
-      console.log("[handleSubmit] bloqueado: falta nombre");
-      showAlert("⚠️ El nombre es obligatorio.", "error");
+    if (!nombre.trim() || !precio || stock === "") {
+      showAlert("⚠️ Completá todos los campos.", "error");
       return;
     }
-    if (!precio || Number(precio) <= 0) {
-      console.log("[handleSubmit] bloqueado: precio inválido", precio);
-      showAlert("⚠️ El precio debe ser mayor a 0.", "error");
-      return;
-    }
-    if (stock === "" || Number(stock) < 0) {
-      console.log("[handleSubmit] bloqueado: stock inválido", stock);
-      showAlert("⚠️ El stock no puede ser negativo.", "error");
-      return;
-    }
-
-    // Fallback de imagen por si no ponen URL válida o la dejan vacía
-    const urlImagenValida = imagen.trim().startsWith("http") || imagen.trim().startsWith("data:")
-      ? imagen.trim()
-      : "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400"; // Foto de zapatilla por defecto
 
     const itemData = {
       nombre: nombre.trim(),
       precio: Number(precio),
       stock: Number(stock),
-      imagen: urlImagenValida,
+      imagen: imagen || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
       categoria: categoria.trim() || "Sin categoría",
-      descripcion: descripcion.trim() || "Descripción no disponible.",
+      descripcion: descripcion.trim(),
     };
 
-    console.log("[handleSubmit] validación OK, escribiendo en Firestore...", itemData);
+    // --- MEJORA: ACTUALIZACIÓN RÁPIDA ---
+    const prevProducts = [...products];
+    if (idEdicion) {
+      setProducts(products.map(p => p.id === idEdicion ? { ...itemData, id: idEdicion } : p));
+    } else {
+      setProducts([...products, { ...itemData, id: "temp-" + Date.now() }]);
+    }
+    setShowForm(false);
+    resetForm();
+    // ------------------------------------
 
     try {
-      if (idEdicion === null) {
-        console.log("[handleSubmit] creando documento nuevo en colección 'productos'");
-        const ref = await addDoc(productsCollection, itemData);
-        console.log("[handleSubmit] documento creado con id:", ref.id);
-        await fetchProducts();
-        console.log("[handleSubmit] fetchProducts terminó, productos en estado:", products.length);
-        resetForm();
-        setShowForm(false);
-        showAlert(`✅ Producto "${itemData.nombre}" creado con éxito.`, "success");
+      if (idEdicion) {
+        await updateDoc(doc(db, "productos", idEdicion), itemData);
+        showAlert("✅ Producto actualizado", "success");
       } else {
-        console.log("[handleSubmit] actualizando documento:", idEdicion);
-        const productDoc = doc(db, "productos", idEdicion);
-        await updateDoc(productDoc, itemData);
+        await addDoc(productsCollection, itemData);
         await fetchProducts();
-        resetForm();
-        setShowForm(false);
-        showAlert(`📝 Producto "${itemData.nombre}" actualizado con éxito.`, "success");
+        showAlert("✅ Producto creado", "success");
       }
     } catch (err) {
-      console.error("[handleSubmit] ERROR al guardar en Firestore:", err.code, err.message, err);
-      showAlert(`❌ Error en Firebase: ${err.message}`, "error");
+      setProducts(prevProducts);
+      showAlert("❌ Error al guardar en Firebase", "error");
     }
   };
 
@@ -268,19 +249,21 @@ export const AdminDashboard = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (productToDelete) {
-      try {
-        const productDoc = doc(db, "productos", productToDelete.id);
-        await deleteDoc(productDoc);
-        setShowDeleteModal(false);
-        setProductToDelete(null);
-        await fetchProducts();
-        showAlert(`🗑️ Producto "${productToDelete.nombre}" eliminado.`, "success");
-      } catch (err) {
-        console.error("Error al borrar de Firestore:", err);
-        showAlert("❌ No se pudo eliminar el producto.", "error");
-      }
+    if (!productToDelete) return;
+
+    const prevProducts = [...products];
+    // Elimina de la vista instantáneamente
+    setProducts(products.filter(p => p.id !== productToDelete.id));
+    setShowDeleteModal(false);
+
+    try {
+      await deleteDoc(doc(db, "productos", productToDelete.id));
+      showAlert("🗑️ Producto eliminado.", "success");
+    } catch (err) {
+      setProducts(prevProducts); // Si falla, vuelve a mostrarlo
+      showAlert("❌ No se pudo eliminar.", "error");
     }
+    setProductToDelete(null);
   };
 
   return (

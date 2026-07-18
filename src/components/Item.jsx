@@ -39,8 +39,8 @@ export const Item = ({ product }) => {
           <span className="font-black text-gray-900 text-lg">
             ${precio.toLocaleString("es-AR")}
           </span>
-          <Link 
-            to={`/item/${id}`} // 👈 Corregido para que coincida con tus rutas de AppRoutes
+          <Link
+            to={`/productos/${id}`}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-xs"
           >
             Ver detalle

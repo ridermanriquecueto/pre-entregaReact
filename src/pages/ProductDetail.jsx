@@ -10,12 +10,13 @@ const ProductDetail = () => {
   const { addToCart, cart } = useCart();
 
   const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true); // Estado de carga añadido
   const [alertMessage, setAlertMessage] = useState("");
-
   const alertTimeoutRef = useRef(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
+      setLoading(true);
       try {
         const docRef = doc(db, "productos", id);
         const docSnap = await getDoc(docRef);
@@ -27,6 +28,8 @@ const ProductDetail = () => {
         }
       } catch (error) {
         console.error("Error al obtener producto:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -39,6 +42,12 @@ const ProductDetail = () => {
     };
   }, [id]);
 
+  // Pantalla de carga
+  if (loading) {
+    return <section className="loading-screen"><h2>Cargando producto...</h2></section>;
+  }
+
+  // Pantalla de error si no existe
   if (!product) {
     return (
       <section className="loading-screen">
@@ -57,10 +66,8 @@ const ProductDetail = () => {
 
     if (availableStock <= 0) {
       setAlertMessage("No hay stock disponible.");
-
       clearTimeout(alertTimeoutRef.current);
       alertTimeoutRef.current = setTimeout(() => setAlertMessage(""), 2000);
-
       return;
     }
 

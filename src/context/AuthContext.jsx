@@ -36,17 +36,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      register, 
-      login, 
-      logout, 
-      loading, 
-      isAdmin // Exportamos el nuevo estado
-    }}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  <AuthContext.Provider value={{ user, register, login, logout, loading, isAdmin }}>
+    {loading ? (
+      <div className="vh-100 d-flex justify-content-center align-items-center">
+        {/* Aquí un spinner pequeño de Bootstrap o un logo animado */}
+        <div className="spinner-border text-primary" role="status"></div>
+      </div>
+    ) : (
+      children
+    )}
+  </AuthContext.Provider>
+ );
 };
 
 export const useAuth = () => useContext(AuthContext);
